@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-bg font-sans text-body antialiased;
+    background-image:
+      radial-gradient(60rem 40rem at 82% -12%, rgba(56, 189, 248, 0.07), transparent 60%),
+      radial-gradient(48rem 34rem at 6% 6%, rgba(16, 185, 129, 0.05), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-heading;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-bg;
+  }
+
+  ::-webkit-scrollbar {
+    @apply h-2 w-2;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-elevated;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-border/80 bg-surface/70 backdrop-blur-sm;
+  }
+
+  .stat-label {
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-muted;
+  }
+
+  .num {
+    @apply font-mono tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

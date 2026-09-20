@@ -1,0 +1,94 @@
+name: Habit Reminders
+
+# GitHub cron only runs in UTC, and America/Chicago shifts between CST (UTC-6)
+# and CDT (UTC-5). Both candidate UTC hours are scheduled and a guard step drops
+# the run that does not land on 07:00 / 20:00 local time, so reminders stay on
+# schedule across daylight saving changes.
+on:
+  schedule:
+    - cron: '0 12 * * 1-5' # 07:00 CDT
+    - cron: '0 13 * * 1-5' # 07:00 CST
+    - cron: '0 1 * * 2-6' # 20:00 CDT (previous local weekday)
+    - cron: '0 2 * * 2-6' # 20:00 CST (previous local weekday)
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: Which reminder to send
+        required: true
+        default: morning
+        type: choice
+        options: [morning, evening]
+
+env:
+  TIMEZONE: America/Chicago
+  APP_URL: ${{ vars.APP_URL || 'https://habitat-tracker.vercel.app' }}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide which reminder is due
+        id: decide
+        run: |
+          set -euo pipefail
+          if [ -n "${{ github.event.inputs.kind || '' }}" ]; then
+            echo "kind=${{ github.event.inputs.kind }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          hour=$(TZ="$TIMEZONE" date +%H)
+          dow=$(TZ="$TIMEZONE" date +%u)
+
+          if [ "$dow" -gt 5 ]; then
+            echo "Weekend in $TIMEZONE — no reminder."
+            echo "kind=skip" >> "$GITHUB_OUTPUT"
+          elif [ "$hour" = "07" ]; then
+            echo "kind=morning" >> "$GITHUB_OUTPUT"
+          elif [ "$hour" = "20" ]; then
+            echo "kind=evening" >> "$GITHUB_OUTPUT"
+          else
+            echo "Local hour is $hour — not a reminder slot."
+            echo "kind=skip" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Discord reminder
+        if: steps.decide.outputs.kind != 'skip'
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          KIND: ${{ steps.decide.outputs.kind }}
+        run: |
+          set -euo pipefail
+          if [ -z "$WEBHOOK" ]; then
+            echo "::error::DISCORD_WEBHOOK_URL secret is not set."
+            exit 1
+          fi
+
+          if [ "$KIND" = "morning" ]; then
+            title="Today's non-negotiables"
+            description=$'🧠 Trading Study — 1+ hour\n🧘 Meditation — 10+ minutes\n🎯 Hunting — 1 session\n\nAll three, or the streak resets.'
+            color=3776944
+            link="$APP_URL"
+          else
+            title="Evening check-in"
+            description=$'Have you logged today yet? Completion, grade, mood — takes a minute.\n\n'"[Log today]($APP_URL/log)"
+            color=1097267
+            link="$APP_URL/log"
+          fi
+
+          payload=$(jq -n \
+            --arg title "$title" \
+            --arg description "$description" \
+            --arg link "$link" \
+            --argjson color "$color" \
+            '{embeds: [{title: $title, description: $description, url: $link, color: $color}]}')
+
+          status=$(curl -sS -o /tmp/discord.out -w '%{http_code}' \
+            -X POST "$WEBHOOK" \
+            -H 'Content-Type: application/json' \
+            -d "$payload")
+
+          echo "Discord responded with $status"
+          if [ "$status" -ge 400 ]; then
+            cat /tmp/discord.out
+            exit 1
+          fi

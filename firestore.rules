@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /runs/{runId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+        // An archived run is locked apart from being un-archived is not allowed:
+        // only an active run may be updated, and only to archive it or rename it.
+        allow update: if isOwner(userId)
+          && resource.data.status == 'active';
+        allow delete: if isOwner(userId);
+
+        match /logs/{date} {
+          allow read: if isOwner(userId);
+          allow write: if isOwner(userId)
+            && get(/databases/$(database)/documents/users/$(userId)/runs/$(runId)).data.status == 'active';
+        }
+      }
+    }
+  }
+}
