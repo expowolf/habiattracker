@@ -25,12 +25,27 @@ export interface ActivityEntry {
   notes: string
 }
 
+export interface StudyTopic {
+  id: string
+  title: string
+  notes: string
+  status: 'todo' | 'done'
+  /** Position in the backlog queue; lower sorts first. */
+  order: number
+  createdAt: number
+  completedAt: number | null
+  /** Which run the topic was covered in, so archived runs stay auditable. */
+  completedInRunId: string | null
+}
+
 export interface DayLog {
   /** ISO date, e.g. "2026-09-22". Also the Firestore document id. */
   date: string
   trading_study: ActivityEntry
   meditation: ActivityEntry
   hunting: ActivityEntry
+  /** Backlog topic covered by that day's trading study, if any. */
+  studyTopicId: string | null
   allComplete: boolean
   dailyStreak: number
   loggedAt: number

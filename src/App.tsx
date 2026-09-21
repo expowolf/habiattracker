@@ -9,6 +9,7 @@ import { Login } from '@/pages/Login'
 import { NewRun } from '@/pages/NewRun'
 import { Runs } from '@/pages/Runs'
 import { Settings } from '@/pages/Settings'
+import { StudyPlan } from '@/pages/StudyPlan'
 
 function Gate() {
   const { user, authReady } = useApp()
@@ -27,6 +28,7 @@ function Gate() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<Dashboard />} />
+        <Route path="study" element={<StudyPlan />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="log" element={<LogEntry />} />
         <Route path="day/:date" element={<DayDetail />} />

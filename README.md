@@ -15,6 +15,18 @@ React 18 + TypeScript + Vite · Tailwind CSS · Firebase Auth & Firestore · Rec
   counter does not drop while you still have time to finish.
 - **Archived runs are read-only**, enforced both in the UI and in the Firestore security rules.
 
+## Study plan
+
+The trading habit is backed by an ordered backlog of topics, so the morning nudge has a concrete
+answer rather than "study something". The first unfinished topic is **next up**: it appears on the
+dashboard and is preselected when you log the day. Reorder with the arrows to change what comes
+next; tick *Finished it* while logging to retire a topic and advance the queue.
+
+The backlog is **global, not per-run** — unfinished topics roll forward into your next challenge,
+and each completed topic records which run covered it (`completedInRunId`), so archived runs stay
+auditable. A topic can span several days: selecting it records what you studied, while marking it
+covered is a separate, deliberate action.
+
 ## Running locally
 
 ```bash
@@ -48,8 +60,10 @@ Restart the dev server; the banner disappears once real credentials are detected
 
 ```
 users/{uid}                                    profile: email, discordWebhookUrl, timezone
+users/{uid}/studyTopics/{topicId}              trading study backlog, ordered, spans runs
 users/{uid}/runs/{runId}                       name, startDate, endDate, status, activities
 users/{uid}/runs/{runId}/logs/{YYYY-MM-DD}     per-activity completion, grade, mood, time, notes
+                                               plus studyTopicId: what was studied that day
 ```
 
 Statistics (completion %, streaks, best day, hardest activity, quality and mood trends, weekly

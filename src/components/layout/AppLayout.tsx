@@ -1,5 +1,13 @@
 import { motion } from 'framer-motion'
-import { BarChart3, CalendarCheck, LayoutDashboard, LogOut, Settings, Layers } from 'lucide-react'
+import {
+  BarChart3,
+  CalendarCheck,
+  GraduationCap,
+  LayoutDashboard,
+  Layers,
+  LogOut,
+  Settings,
+} from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useApp } from '@/context/AppContext'
 import { isLocalMode } from '@/data'
@@ -7,6 +15,7 @@ import { cn } from '@/lib/utils'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/study', label: 'Study', icon: GraduationCap, end: false },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, end: false },
   { to: '/runs', label: 'Runs', icon: Layers, end: false },
   { to: '/settings', label: 'Settings', icon: Settings, end: false },

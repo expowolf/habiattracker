@@ -10,7 +10,7 @@ import {
 import { store, type NewRunInput, type SessionUser } from '@/data'
 import { todayISO } from '@/lib/dates'
 import { computeStats } from '@/lib/stats'
-import type { DayLog, Profile, Run, RunStats } from '@/types'
+import type { DayLog, Profile, Run, RunStats, StudyTopic } from '@/types'
 
 interface AppContextValue {
   user: SessionUser | null
@@ -22,6 +22,11 @@ interface AppContextValue {
   selectRun: (runId: string | null) => void
   logs: Record<string, DayLog>
   stats: RunStats | null
+  studyTopics: StudyTopic[]
+  /** First unfinished topic in the backlog — what to study next. */
+  nextTopic: StudyTopic | null
+  saveStudyTopic: (topic: StudyTopic) => Promise<void>
+  deleteStudyTopic: (topicId: string) => Promise<void>
   timezone: string
   today: string
   loadingRun: boolean
@@ -41,6 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [runs, setRuns] = useState<Run[]>([])
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [logs, setLogs] = useState<Record<string, DayLog>>({})
+  const [studyTopics, setStudyTopics] = useState<StudyTopic[]>([])
   const [loadingRun, setLoadingRun] = useState(true)
 
   useEffect(
@@ -52,6 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setProfile(null)
           setRuns([])
           setLogs({})
+          setStudyTopics([])
           setSelectedRunId(null)
         }
       }),
@@ -69,6 +76,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setRuns(next)
       setLoadingRun(false)
     })
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    return store.watchStudyTopics(user.uid, setStudyTopics)
   }, [user])
 
   const activeRun = useMemo(() => runs.find((run) => run.status === 'active') ?? null, [runs])
@@ -122,6 +134,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [user],
   )
 
+  const nextTopic = useMemo(
+    () => studyTopics.find((topic) => topic.status === 'todo') ?? null,
+    [studyTopics],
+  )
+
+  const saveStudyTopic = useCallback(
+    async (topic: StudyTopic) => {
+      if (!user) throw new Error('Not signed in.')
+      await store.saveStudyTopic(user.uid, topic)
+    },
+    [user],
+  )
+
+  const deleteStudyTopic = useCallback(
+    async (topicId: string) => {
+      if (!user) throw new Error('Not signed in.')
+      await store.deleteStudyTopic(user.uid, topicId)
+    },
+    [user],
+  )
+
   const saveProfile = useCallback(
     async (patch: Partial<Profile>) => {
       if (!user) throw new Error('Not signed in.')
@@ -140,6 +173,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectRun: setSelectedRunId,
     logs,
     stats,
+    studyTopics,
+    nextTopic,
+    saveStudyTopic,
+    deleteStudyTopic,
     timezone,
     today,
     loadingRun,

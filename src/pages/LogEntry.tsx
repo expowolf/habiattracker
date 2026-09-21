@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Field, Input, Textarea } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { useApp } from '@/context/AppContext'
 import { DEFAULT_ACTIVITIES, EMPTY_ENTRY, PILLARS } from '@/lib/activities'
@@ -29,7 +29,7 @@ function blankDraft(): Record<ActivityId, ActivityEntry> {
 }
 
 export function LogEntry() {
-  const { selectedRun, logs, today, saveLog } = useApp()
+  const { selectedRun, logs, today, saveLog, studyTopics, nextTopic, saveStudyTopic } = useApp()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const date = params.get('date') ?? today
@@ -43,8 +43,24 @@ export function LogEntry() {
       hunting: { ...EMPTY_ENTRY, ...existing.hunting },
     }
   })
+  const [studyTopicId, setStudyTopicId] = useState<string>(() => existing?.studyTopicId ?? '')
+  const [topicTouched, setTopicTouched] = useState(false)
+  const [markTopicCovered, setMarkTopicCovered] = useState(false)
+
+  // The backlog loads a tick after this form mounts, so seed the picker with the
+  // next topic once it arrives — unless the day already has one or the user chose.
+  useEffect(() => {
+    if (topicTouched || studyTopicId || existing?.studyTopicId) return
+    if (nextTopic) setStudyTopicId(nextTopic.id)
+  }, [nextTopic, topicTouched, studyTopicId, existing])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Topics already covered stay selectable only if this day is the one that covered them.
+  const topicOptions = useMemo(
+    () => studyTopics.filter((t) => t.status === 'todo' || t.id === existing?.studyTopicId),
+    [studyTopics, existing],
+  )
 
   const activities = selectedRun?.activities ?? DEFAULT_ACTIVITIES
   const completedCount = ACTIVITY_IDS.filter((id) => draft[id].completed).length
@@ -56,6 +72,7 @@ export function LogEntry() {
       [date]: {
         date,
         ...draft,
+        studyTopicId: studyTopicId || null,
         allComplete: completedCount === ACTIVITY_IDS.length,
         dailyStreak: 0,
         loggedAt: Date.now(),
@@ -79,12 +96,23 @@ export function LogEntry() {
       const log: DayLog = {
         date,
         ...draft,
+        studyTopicId: studyTopicId || null,
         allComplete: completedCount === ACTIVITY_IDS.length,
         dailyStreak: projectedStreak,
         loggedAt: existing?.loggedAt ?? Date.now(),
         updatedAt: Date.now(),
       }
       await saveLog(log)
+
+      const covered = studyTopics.find((t) => t.id === studyTopicId)
+      if (markTopicCovered && covered && covered.status === 'todo') {
+        await saveStudyTopic({
+          ...covered,
+          status: 'done',
+          completedAt: Date.now(),
+          completedInRunId: selectedRun.id,
+        })
+      }
       navigate(`/day/${date}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the log.')
@@ -163,6 +191,48 @@ export function LogEntry() {
                 )
               })}
             </div>
+
+            {id === 'trading_study' ? (
+              <div className="mt-4 rounded-lg border border-border/60 bg-elevated/30 p-3">
+                <Field label="Topic studied" htmlFor="study-topic">
+                  {topicOptions.length === 0 ? (
+                    <p className="text-xs text-muted">
+                      No topics queued.{' '}
+                      <Link to="/study" className="text-accent hover:opacity-80">
+                        Build your study plan →
+                      </Link>
+                    </p>
+                  ) : (
+                    <Select
+                      id="study-topic"
+                      value={studyTopicId}
+                      onChange={(e) => {
+                        setTopicTouched(true)
+                        setStudyTopicId(e.target.value)
+                      }}
+                    >
+                      <option value="">— not tracked —</option>
+                      {topicOptions.map((topic) => (
+                        <option key={topic.id} value={topic.id}>
+                          {topic.title}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
+                {studyTopicId ? (
+                  <label className="mt-2.5 flex items-center gap-2 text-xs text-body">
+                    <input
+                      type="checkbox"
+                      checked={markTopicCovered}
+                      onChange={(e) => setMarkTopicCovered(e.target.checked)}
+                      className="h-4 w-4 rounded border-border bg-elevated accent-sky-400"
+                    />
+                    Finished it — remove from the queue
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field label="Quality grade">

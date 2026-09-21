@@ -1,4 +1,4 @@
-import type { DayLog, Profile, Run } from '@/types'
+import type { DayLog, Profile, Run, StudyTopic } from '@/types'
 import type { HabitStore, NewRunInput, SessionUser } from './store'
 
 /**
@@ -14,10 +14,11 @@ interface LocalState {
   profile: Profile | null
   runs: Run[]
   logs: Record<string, Record<string, DayLog>>
+  studyTopics: StudyTopic[]
 }
 
 function emptyState(): LocalState {
-  return { user: null, profile: null, runs: [], logs: {} }
+  return { user: null, profile: null, runs: [], logs: {}, studyTopics: [] }
 }
 
 function read(): LocalState {
@@ -127,6 +128,24 @@ export function createLocalStore(): HabitStore {
         ...state,
         logs: { ...state.logs, [runId]: { ...(state.logs[runId] ?? {}), [log.date]: log } },
       })
+    },
+
+    watchStudyTopics(_uid, callback) {
+      return subscribe(() => callback([...state.studyTopics].sort((a, b) => a.order - b.order)))
+    },
+
+    async saveStudyTopic(_uid, topic) {
+      const exists = state.studyTopics.some((t) => t.id === topic.id)
+      commit({
+        ...state,
+        studyTopics: exists
+          ? state.studyTopics.map((t) => (t.id === topic.id ? topic : t))
+          : [...state.studyTopics, topic],
+      })
+    },
+
+    async deleteStudyTopic(_uid, topicId) {
+      commit({ ...state, studyTopics: state.studyTopics.filter((t) => t.id !== topicId) })
     },
   }
 }

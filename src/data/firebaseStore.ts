@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth'
 import {
   collection,
+  deleteDoc,
   doc,
   getFirestore,
   onSnapshot,
@@ -19,7 +20,7 @@ import {
   updateDoc,
   type Firestore,
 } from 'firebase/firestore'
-import type { DayLog, Profile, Run } from '@/types'
+import type { DayLog, Profile, Run, StudyTopic } from '@/types'
 import type { HabitStore, NewRunInput } from './store'
 
 export const firebaseConfig = {
@@ -42,6 +43,7 @@ export function createFirebaseStore(): HabitStore {
 
   const runsRef = (uid: string) => collection(db, 'users', uid, 'runs')
   const logsRef = (uid: string, runId: string) => collection(db, 'users', uid, 'runs', runId, 'logs')
+  const topicsRef = (uid: string) => collection(db, 'users', uid, 'studyTopics')
 
   return {
     kind: 'firebase',
@@ -120,6 +122,20 @@ export function createFirebaseStore(): HabitStore {
 
     async saveLog(uid, runId, log) {
       await setDoc(doc(db, 'users', uid, 'runs', runId, 'logs', log.date), log, { merge: true })
+    },
+
+    watchStudyTopics(uid, callback) {
+      return onSnapshot(query(topicsRef(uid), orderBy('order')), (snap) => {
+        callback(snap.docs.map((d) => ({ ...(d.data() as StudyTopic), id: d.id })))
+      })
+    },
+
+    async saveStudyTopic(uid, topic) {
+      await setDoc(doc(db, 'users', uid, 'studyTopics', topic.id), topic, { merge: true })
+    },
+
+    async deleteStudyTopic(uid, topicId) {
+      await deleteDoc(doc(db, 'users', uid, 'studyTopics', topicId))
     },
   }
 }

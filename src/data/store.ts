@@ -1,4 +1,4 @@
-import type { ActivityConfig, ActivityMap, DayLog, Profile, Run } from '@/types'
+import type { ActivityConfig, ActivityMap, DayLog, Profile, Run, StudyTopic } from '@/types'
 
 export interface SessionUser {
   uid: string
@@ -31,6 +31,11 @@ export interface HabitStore {
 
   watchLogs(uid: string, runId: string, callback: (logs: Record<string, DayLog>) => void): Unsubscribe
   saveLog(uid: string, runId: string, log: DayLog): Promise<void>
+
+  /** The study backlog is global: it outlives individual runs. */
+  watchStudyTopics(uid: string, callback: (topics: StudyTopic[]) => void): Unsubscribe
+  saveStudyTopic(uid: string, topic: StudyTopic): Promise<void>
+  deleteStudyTopic(uid: string, topicId: string): Promise<void>
 }
 
 export function authErrorMessage(error: unknown): string {

@@ -9,6 +9,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
+      // The study backlog is global rather than per-run, so it survives archiving.
+      match /studyTopics/{topicId} {
+        allow read, write: if isOwner(userId);
+      }
+
       match /runs/{runId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId);

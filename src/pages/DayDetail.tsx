@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, GraduationCap, XCircle } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -10,12 +10,13 @@ import { ACTIVITY_IDS } from '@/types'
 
 export function DayDetail() {
   const { date = '' } = useParams()
-  const { selectedRun, logs, today } = useApp()
+  const { selectedRun, logs, today, studyTopics } = useApp()
   const navigate = useNavigate()
 
   const log = logs[date]
   const activities = selectedRun?.activities ?? DEFAULT_ACTIVITIES
   const editable = selectedRun?.status === 'active' && date <= today
+  const studiedTopic = studyTopics.find((topic) => topic.id === log?.studyTopicId) ?? null
 
   return (
     <div className="space-y-5">
@@ -90,6 +91,13 @@ export function DayDetail() {
                         </dd>
                       </div>
                     </dl>
+
+                    {id === 'trading_study' && studiedTopic ? (
+                      <p className="mt-3 flex items-center gap-2 text-xs text-accent">
+                        <GraduationCap className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        Topic: {studiedTopic.title}
+                      </p>
+                    ) : null}
 
                     {entry?.notes ? (
                       <p className="mt-3 rounded-lg border border-border/60 bg-elevated/30 p-3 text-sm text-body">

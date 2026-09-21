@@ -1,5 +1,13 @@
 import { motion } from 'framer-motion'
-import { ArrowRight, CheckCircle2, CircleDashed, PartyPopper, Plus, XCircle } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  CircleDashed,
+  GraduationCap,
+  PartyPopper,
+  Plus,
+  XCircle,
+} from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CalendarGrid } from '@/components/CalendarGrid'
 import { StreakCounter } from '@/components/StreakCounter'
@@ -18,12 +26,14 @@ function TodayActivityRow({
   icon,
   target,
   entry: record,
+  hint,
 }: {
   id: string
   label: string
   icon: string
   target: string
   entry: ActivityEntry | undefined
+  hint?: string
 }) {
   const completed = record?.completed === true
   const logged = record !== undefined
@@ -45,6 +55,7 @@ function TodayActivityRow({
           {record.grade}
         </span>
       ) : null}
+      {hint ? <span className="hidden shrink-0 text-xs text-accent sm:block">{hint}</span> : null}
       {completed ? (
         <CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-label="Complete" />
       ) : logged ? (
@@ -57,7 +68,7 @@ function TodayActivityRow({
 }
 
 export function Dashboard() {
-  const { selectedRun, logs, stats, today, timezone, loadingRun, archiveRun } = useApp()
+  const { selectedRun, logs, stats, today, timezone, loadingRun, archiveRun, nextTopic } = useApp()
   const navigate = useNavigate()
 
   if (loadingRun) {
@@ -157,9 +168,31 @@ export function Dashboard() {
                 icon={activities[id]?.icon ?? DEFAULT_ACTIVITIES[id].icon}
                 target={activities[id]?.target ?? DEFAULT_ACTIVITIES[id].target}
                 entry={todayLog?.[id]}
+                hint={id === 'trading_study' && nextTopic ? 'Next up' : undefined}
               />
             ))}
           </ul>
+
+          {nextTopic ? (
+            <Link
+              to="/study"
+              className="mt-3 flex items-center gap-2.5 rounded-lg border border-accent/40 bg-accent/10 p-3 transition-colors hover:bg-accent/15"
+            >
+              <GraduationCap className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="stat-label block text-accent">Study next</span>
+                <span className="mt-0.5 block truncate text-sm text-heading">{nextTopic.title}</span>
+              </span>
+            </Link>
+          ) : (
+            <Link
+              to="/study"
+              className="mt-3 flex items-center gap-2.5 rounded-lg border border-border/60 bg-elevated/30 p-3 text-xs text-muted transition-colors hover:text-body"
+            >
+              <GraduationCap className="h-4 w-4 shrink-0" aria-hidden />
+              Nothing queued to study — build your plan →
+            </Link>
+          )}
           <p className="mt-4 border-t border-border/70 pt-3 text-xs text-muted">
             Yesterday ({yesterday.slice(5)}):{' '}
             <span
